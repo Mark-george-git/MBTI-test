@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#f4f7f6">
+  <title>MBTI 性格倾向测试</title>
+  <style>
+    :root {
+      --ink: #17231f;
+      --muted: #66736e;
+      --line: #dfe7e3;
+      --surface: #ffffff;
+      --canvas: #f4f7f6;
+      --accent: #247261;
+      --accent-soft: #e3f1ed;
+      --warm: #c66b35;
+      --blue: #3f6f9f;
+      --rose: #9b596d;
+      --shadow: 0 18px 50px rgba(28, 50, 43, 0.10);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+      background: var(--canvas);
+    }
+
+    body {
+      min-height: 100vh;
+      min-height: 100svh;
+      margin: 0;
+      color: var(--ink);
+      background: var(--canvas);
+      font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC",
+        "Source Han Sans SC", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .app {
+      width: min(100%, 760px);
+      min-height: 100vh;
+      min-height: 100svh;
+      margin: 0 auto;
+      padding: 24px clamp(16px, 4vw, 32px) max(28px, env(safe-area-inset-bottom));
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+
+    .brand-mark {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 5px var(--accent-soft);
+    }
+
+    .progress-track {
+      height: 6px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e2e9e6;
+    }
+
+    .progress-fill {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--accent);
+      transition: width 300ms ease;
+    }
+
+    .count {
+      min-width: 44px;
+      color: var(--muted);
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    .main {
+      flex: 1;
+      display: flex;
+    }
+
+    .view {
+      width: 100%;
+      display: none;
+      flex-direction: column;
+    }
+
+    .view.active {
+      display: flex;
+      animation: view-in 320ms ease both;
+    }
+
+    @keyframes view-in {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .question-panel,
+    .result-panel {
+      width: 100%;
+      padding: clamp(22px, 5vw, 42px);
+      border: 1px solid rgba(213, 224, 219, 0.92);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .question-panel {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      min-height: 500px;
+    }
+
+    .dimension-tag {
+      display: inline-flex;
+      align-self: flex-start;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 22px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      color: var(--accent);
+      background: var(--accent-soft);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+    }
+
+    .dimension-tag::before {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      content: "";
+    }
+
+    .question-title {
+      max-width: 19em;
+      margin: 0 0 28px;
+      font-size: clamp(22px, 5vw, 31px);
+      line-height: 1.45;
+      letter-spacing: 0;
+    }
+
+    .options {
+      display: grid;
+      gap: 12px;
+      margin-top: auto;
+    }
+
+    .option {
+      position: relative;
+      width: 100%;
+      min-height: 64px;
+      padding: 16px 48px 16px 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      color: var(--ink);
+      background: #fbfcfc;
+      font-size: 16px;
+      line-height: 1.5;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 180ms ease, background 180ms ease,
+        transform 180ms ease, box-shadow 180ms ease;
+    }
+
+    .option::after {
+      position: absolute;
+      top: 50%;
+      right: 18px;
+      width: 20px;
+      height: 20px;
+      border: 1.5px solid #b9c7c1;
+      border-radius: 50%;
+      content: "";
+      transform: translateY(-50%);
+      transition: border-color 180ms ease, background 180ms ease;
+    }
+
+    .option:hover {
+      border-color: #9bb9af;
+      background: #f7faf9;
+      box-shadow: 0 7px 22px rgba(36, 114, 97, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .option:focus-visible,
+    .nav-button:focus-visible,
+    .primary-button:focus-visible,
+    .ghost-button:focus-visible {
+      outline: 3px solid rgba(36, 114, 97, 0.24);
+      outline-offset: 2px;
+    }
+
+    .option.selected {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      box-shadow: 0 7px 22px rgba(36, 114, 97, 0.10);
+    }
+
+    .option.selected::after {
+      border-color: var(--accent);
+      background: var(--accent);
+      box-shadow: inset 0 0 0 5px var(--accent-soft);
+    }
+
+    .question-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .nav-button,
+    .ghost-button,
+    .primary-button {
+      min-height: 44px;
+      border: 0;
+      border-radius: var(--radius);
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 180ms ease, color 180ms ease,
+        border-color 180ms ease, transform 180ms ease;
+    }
+
+    .nav-button,
+    .ghost-button {
+      padding: 0 16px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      background: transparent;
+    }
+
+    .nav-button:hover:not(:disabled),
+    .ghost-button:hover {
+      border-color: #b9c9c3;
+      color: var(--ink);
+      background: #f7faf9;
+    }
+
+    .nav-button:disabled {
+      opacity: 0.38;
+      cursor: not-allowed;
+    }
+
+    .hint {
+      color: #89958f;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .result-view {
+      justify-content: flex-start;
+    }
+
+    .result-panel {
+      padding-top: clamp(28px, 6vw, 52px);
+    }
+
+    .result-kicker {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+
+    .type-code {
+      margin: 0;
+      color: var(--accent);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(56px, 15vw, 86px);
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: 0.02em;
+    }
+
+    .type-name {
+      margin: 10px 0 0;
+      font-size: clamp(22px, 5vw, 29px);
+      line-height: 1.35;
+    }
+
+    .result-summary {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .section-rule {
+      height: 1px;
+      margin: 32px 0;
+      border: 0;
+      background: var(--line);
+    }
+
+    .section-title {
+      margin: 0 0 20px;
+      font-size: 17px;
+      line-height: 1.4;
+    }
+
+    .dimensions {
+      display: grid;
+      gap: 24px;
+    }
+
+    .dimension-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .dimension-name {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .dimension-value {
+      color: var(--ink);
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+    }
+
+    .split-bar {
+      display: flex;
+      height: 9px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #edf1ef;
+    }
+
+    .split-a,
+    .split-b {
+      width: 50%;
+      transition: width 650ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .split-a {
+      background: var(--accent);
+    }
+
+    .split-b {
+      background: #b8c8c2;
+    }
+
+    .dimension-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      color: #8a9691;
+      font-size: 12px;
+    }
+
+    .description {
+      margin: 0;
+      color: #43504b;
+      font-size: 16px;
+      line-height: 1.95;
+    }
+
+    .result-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 32px;
+    }
+
+    .primary-button {
+      padding: 0 18px;
+      color: #ffffff;
+      background: var(--accent);
+    }
+
+    .primary-button:hover {
+      background: #195d4f;
+      transform: translateY(-1px);
+    }
+
+    .small-note {
+      margin: 18px 0 0;
+      color: #8b9691;
+      font-size: 11px;
+      line-height: 1.7;
+      text-align: center;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 560px) {
+      .app {
+        padding-top: max(16px, env(safe-area-inset-top));
+      }
+
+      .topbar {
+        margin-bottom: 18px;
+      }
+
+      .brand {
+        font-size: 0;
+      }
+
+      .question-panel,
+      .result-panel {
+        padding: 24px 20px;
+        box-shadow: 0 12px 34px rgba(28, 50, 43, 0.08);
+      }
+
+      .question-panel {
+        min-height: calc(100svh - 118px);
+      }
+
+      .question-title {
+        margin-bottom: 22px;
+        font-size: 23px;
+      }
+
+      .option {
+        min-height: 68px;
+        font-size: 15px;
+      }
+
+      .result-actions {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar" aria-label="测试进度">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        MBTI
+      </div>
+      <div class="progress-track" role="progressbar" aria-label="答题进度"
+        aria-valuemin="0" aria-valuemax="20" aria-valuenow="0" id="progressTrack">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <div class="count" id="progressCount">0 / 20</div>
+    </header>
+
+    <div class="main">
+      <section class="view active" id="quizView" aria-labelledby="questionTitle">
+        <div class="question-panel">
+          <div class="dimension-tag" id="dimensionTag">能量来源</div>
+          <h1 class="question-title" id="questionTitle"></h1>
+          <div class="options" id="options"></div>
+        </div>
+        <div class="question-footer">
+          <button class="nav-button" id="prevButton" type="button">上一题</button>
+          <span class="hint" id="answerHint">请选择更符合你的选项</span>
+        </div>
+      </section>
+
+      <section class="view result-view" id="resultView" aria-labelledby="typeCode">
+        <div class="result-panel">
+          <p class="result-kicker">你的性格类型</p>
+          <h2 class="type-code" id="typeCode"></h2>
+          <h3 class="type-name" id="typeName"></h3>
+          <p class="result-summary" id="resultSummary"></p>
+
+          <hr class="section-rule">
+
+          <h3 class="section-title">四个维度倾向</h3>
+          <div class="dimensions" id="dimensions"></div>
+
+          <hr class="section-rule">
+
+          <h3 class="section-title">性格描述</h3>
+          <p class="description" id="description"></p>
+
+          <div class="result-actions">
+            <button class="ghost-button" id="reviewButton" type="button">返回检查答案</button>
+            <button class="primary-button" id="restartButton" type="button">重新测试</button>
+          </div>
+          <p class="small-note">结果反映当前作答时的偏好倾向，仅供自我探索参考。</p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const questions = [
+      {
+        dimension: "EI",
+        label: "能量来源",
+        text: "周末有一整天空闲时间，你更想怎样度过？",
+        options: [
+          { text: "约朋友见面或参加热闹的活动", value: "E" },
+          { text: "独自待着，安静地恢复精力", value: "I" }
+        ]
+      },
+      {
+        dimension: "SN",
+        label: "信息偏好",
+        text: "学习一项新技能时，你更关注什么？",
+        options: [
+          { text: "具体步骤、实际用途和可操作的方法", value: "S" },
+          { text: "背后的原理、整体概念和未来可能", value: "N" }
+        ]
+      },
+      {
+        dimension: "TF",
+        label: "决策方式",
+        text: "朋友向你倾诉烦恼时，你通常会先做什么？",
+        options: [
+          { text: "帮他分析问题，并给出解决建议", value: "T" },
+          { text: "先理解他的感受，让他觉得被支持", value: "F" }
+        ]
+      },
+      {
+        dimension: "JP",
+        label: "生活方式",
+        text: "计划一次旅行时，你更接近哪种做法？",
+        options: [
+          { text: "提前安排好行程、住宿和每天的重点", value: "J" },
+          { text: "只定大方向，到了当地再灵活决定", value: "P" }
+        ]
+      },
+      {
+        dimension: "EI",
+        label: "能量来源",
+        text: "进入一个几乎不认识人的聚会，你往往会？",
+        options: [
+          { text: "主动找人聊天，很快融入现场", value: "E" },
+          { text: "先观察一会儿，等熟悉的人或话题出现", value: "I" }
+        ]
+      },
+      {
+        dimension: "SN",
+        label: "信息偏好",
+        text: "做重要决定时，你更信赖哪一种信息？",
+        options: [
+          { text: "已有经验、可靠事实和具体依据", value: "S" },
+          { text: "直觉判断、未来趋势和潜在可能", value: "N" }
+        ]
+      },
+      {
+        dimension: "TF",
+        label: "决策方式",
+        text: "团队出现分歧时，你更看重什么？",
+        options: [
+          { text: "把问题讲清楚，选择逻辑上最合理的方案", value: "T" },
+          { text: "照顾各方感受，尽量找到彼此都能接受的办法", value: "F" }
+        ]
+      },
+      {
+        dimension: "JP",
+        label: "生活方式",
+        text: "面对一项截止日期较远的任务，你通常会？",
+        options: [
+          { text: "尽早拆解安排，提前完成主要部分", value: "J" },
+          { text: "先保留空间，临近截止时集中完成", value: "P" }
+        ]
+      },
+      {
+        dimension: "EI",
+        label: "能量来源",
+        text: "当你需要理清一个复杂想法时，你更倾向于？",
+        options: [
+          { text: "边说边想，在讨论中逐渐形成结论", value: "E" },
+          { text: "先独立想清楚，再和别人交流结果", value: "I" }
+        ]
+      },
+      {
+        dimension: "SN",
+        label: "信息偏好",
+        text: "向别人描述一段经历时，你更容易记住？",
+        options: [
+          { text: "时间、地点、人物和发生的具体细节", value: "S" },
+          { text: "整体氛围、内在感受和它带来的启示", value: "N" }
+        ]
+      },
+      {
+        dimension: "TF",
+        label: "决策方式",
+        text: "当你受到批评时，你的第一反应更接近？",
+        options: [
+          { text: "判断对方说得是否有道理，忽略表达方式", value: "T" },
+          { text: "先在意对方的语气，以及关系是否受到影响", value: "F" }
+        ]
+      },
+      {
+        dimension: "JP",
+        label: "生活方式",
+        text: "你的日常日程更接近哪一种状态？",
+        options: [
+          { text: "安排清晰，喜欢按计划逐项推进", value: "J" },
+          { text: "保持开放，根据当下状态随时调整", value: "P" }
+        ]
+      },
+      {
+        dimension: "EI",
+        label: "能量来源",
+        text: "一天忙碌结束后，哪种方式更能让你恢复？",
+        options: [
+          { text: "和熟悉的人聊聊天，或者一起做点事情", value: "E" },
+          { text: "减少外界打扰，一个人静静待着", value: "I" }
+        ]
+      },
+      {
+        dimension: "SN",
+        label: "信息偏好",
+        text: "面对一个全新的方案，你更自然地被什么吸引？",
+        options: [
+          { text: "它是否经过验证，能不能马上落地", value: "S" },
+          { text: "它是否有新意，以及可能打开什么局面", value: "N" }
+        ]
+      },
+      {
+        dimension: "TF",
+        label: "决策方式",
+        text: "评价一个团队方案时，你更可能先问？",
+        options: [
+          { text: "它是否有效、合理，成本和收益是否匹配", value: "T" },
+          { text: "它是否尊重人，会不会让某些成员难受", value: "F" }
+        ]
+      },
+      {
+        dimension: "JP",
+        label: "生活方式",
+        text: "对于常用物品，你更接近哪种习惯？",
+        options: [
+          { text: "有相对固定的位置，用完会及时放回", value: "J" },
+          { text: "随手放在方便的地方，需要时再找", value: "P" }
+        ]
+      },
+      {
+        dimension: "EI",
+        label: "能量来源",
+        text: "在需要长期协作的项目里，你更喜欢？",
+        options: [
+          { text: "频繁沟通，边协作边同步进展", value: "E" },
+          { text: "明确分工后独立推进，减少频繁交流", value: "I" }
+        ]
+      },
+      {
+        dimension: "SN",
+        label: "信息偏好",
+        text: "规划一个新项目时，你通常从哪里开始？",
+        options: [
+          { text: "现有资源、现实条件和可衡量目标", value: "S" },
+          { text: "长远愿景、创新方向和尚不清晰的机会", value: "N" }
+        ]
+      },
+      {
+        dimension: "TF",
+        label: "决策方式",
+        text: "当原则和人情发生冲突时，你更容易？",
+        options: [
+          { text: "坚持一致标准，尽量不受关系影响", value: "T" },
+          { text: "考虑具体处境，为重要关系留出弹性", value: "F" }
+        ]
+      },
+      {
+        dimension: "JP",
+        label: "生活方式",
+        text: "已经安排好的计划突然被打乱时，你会？",
+        options: [
+          { text: "尽快重新规划，让事情回到可控节奏", value: "J" },
+          { text: "顺其自然，看看变化会带来什么新选择", value: "P" }
+        ]
+      }
+    ];
+
+    const typeNames = {
+      INTJ: "建筑师",
+      INTP: "逻辑学家",
+      ENTJ: "指挥官",
+      ENTP: "辩论家",
+      INFJ: "提倡者",
+      INFP: "调停者",
+      ENFJ: "主人公",
+      ENFP: "竞选者",
+      ISTJ: "物流师",
+      ISFJ: "守卫者",
+      ESTJ: "总经理",
+      ESFJ: "执政官",
+      ISTP: "鉴赏家",
+      ISFP: "探险家",
+      ESTP: "企业家",
+      ESFP: "表演者"
+    };
+
+    const descriptions = {
+      INTJ: "你习惯从整体和长远角度理解事物，善于发现系统中的规律，并为自己设定清晰目标。你独立、理性、重视效率，不愿被无效规则束缚。面对复杂问题时，你既有耐心，也能果断取舍。需要注意的是，别让高标准变成对他人的苛求；适时表达关心、听取不同意见，会让你的判断更有温度，也让合作推进得更顺畅。",
+      INTP: "你好奇心强，喜欢拆解概念、探索原理，并享受独立思考带来的自由。你通常冷静客观，对新观点保持开放，不愿机械地接受现成答案。灵感来临时，你能提出很有深度的见解；但日常执行和情绪沟通有时容易被忽略。试着把想法拆成可完成的小步骤，并更主动地表达在意，能让你的创造力真正落地。",
+      ENTJ: "你目标感强，行动果断，擅长快速看清局势、整合资源并推动团队前进。挑战和竞争往往能激发你的斗志，你也愿意为结果承担责任。你重视效率与成长，不喜欢拖泥带水。不过，强势表达可能让别人感到压力。多留出倾听和协商的空间，关注伙伴的感受，会让你的领导力更稳、更有凝聚力。",
+      ENTP: "你思维敏捷，喜欢挑战常规、提出新可能，并善于从辩论和观点碰撞中获得启发。你适应变化，愿意尝试不同路径，讨厌单调重复。你的热情和创意很容易感染他人，但兴趣转移太快时，计划也可能变得松散。找到真正重要的方向，建立收尾机制，同时照顾他人的节奏，你的影响力会更加持久。",
+      INFJ: "你敏锐而富有洞察力，常能察觉言语背后的情绪与动机，也渴望做有意义的事。你重视深层连接，对他人真诚体贴，同时内心有清晰的价值标准。你擅长长期思考，愿意为理想持续投入。但若过度承担别人的情绪，容易消耗自己。设立边界、及时表达需要，并允许世界不完美，会让你走得更从容。",
+      INFP: "你内心细腻，重视真实、善意与个人价值，常对世界抱有温柔而坚定的理想。你善于共情，能理解不同处境的人，也喜欢通过创作、思考或陪伴表达自己。一旦找到认同的方向，你会展现很强的投入感，只是现实压力可能让你退缩。把理想拆成当下能做的行动，并减少自我苛责，会让你的力量更稳定。",
+      ENFJ: "你善于理解他人，也乐于鼓励和连接身边的人，常常自然成为团队中的协调者。你重视和谐与共同成长，愿意为集体付出，并能敏锐察觉气氛变化。你的表达有感染力，容易让人信任。不过，太在意他人反馈时，你可能忽略自己的需要。学会拒绝、保留独处空间，并允许别人承担责任，会让你的支持更健康。",
+      ENFP: "你热情、好奇，喜欢新鲜体验和充满可能性的生活。你很容易与人建立连接，也能用创意和乐观感染周围人。你重视真诚与自由，不愿被刻板安排限制。一旦被意义感驱动，你会投入惊人的能量，但兴趣广泛时也容易分散。选择少数真正重要的目标，练习持续收尾，并稳定管理精力，会让你的天赋充分释放。",
+      ISTJ: "你务实、可靠，重视事实、秩序与承诺。做事前习惯制定清晰计划，一旦承担责任，就会尽量按标准完成。你善于维护稳定，也能在细节中发现风险，别人通常愿意把重要事务交给你。不过，变化来临或他人方式不同时，你可能会感到不适。适度保持弹性，主动沟通你的判断，并为新方法留一点空间，会更有利于长期发展。",
+      ISFJ: "你温和、细心，乐于照顾具体的人与事，也重视稳定、安全和彼此信任的关系。你往往记得别人的需要，愿意在幕后默默付出，是可靠而体贴的伙伴。面对熟悉环境时，你能展现出色的执行力和责任感。但你不习惯拒绝，容易委屈自己。练习说出真实感受，接受帮助，并允许自己优先休息，会让你的善意更长久。",
+      ESTJ: "你果断务实，重视规则、效率和明确结果，擅长把混乱局面整理成可执行的安排。你愿意承担责任，喜欢直接沟通，也会推动团队按时完成目标。在需要组织和决策的场合，你常能发挥稳定作用。不过，标准过高时可能显得强硬。多听取不同节奏与想法，用鼓励代替指令，会让你的管理更有效，也更容易赢得认同。",
+      ESFJ: "你热心、周到，重视人际连接和集体氛围，愿意主动照顾他人并维护稳定关系。你擅长组织活动、协调事务，也常能记住身边人的需要。得到认可时，你会投入更多热情，是值得信赖的伙伴。不过，你可能过分在意评价，或把别人的问题揽到自己身上。保留个人边界，允许关系存在差异，会让你的付出更轻松。",
+      ISTP: "你冷静、务实，喜欢通过动手实践理解事物，面对突发状况往往能迅速找到解决办法。你重视自由和效率，不喜欢空谈，也不愿被过多规则束缚。你通常低调，但在关键时刻很可靠，只是情绪表达和长期规划容易被你忽略。试着提前说明计划，并主动分享感受，会让别人更懂你，也让你的能力得到更好发挥。",
+      ISFP: "你安静、敏感，重视真实体验和个人自由，擅长用行动、审美或细节表达内心。你对周围环境观察细致，待人体贴，却不喜欢强迫别人。你更愿意按自己的节奏生活，在认同的事情上会展现持久的专注。但冲突来临时，你可能选择回避。练习及时表达界限，并为选择设定小目标，会让你的生活更舒展、更有方向。",
+      ESTP: "你反应快、行动力强，喜欢直接体验并解决眼前问题。你擅长捕捉机会，在压力和变化中往往比旁人更镇定。你重视真实反馈，不喜欢冗长讨论，也常能用幽默和活力带动气氛。不过，追求刺激时容易忽略长期后果。停下来评估风险，兑现承诺，并耐心倾听他人的顾虑，会让你的果断更有分量。",
+      ESFP: "你热情、开朗，享受当下，也善于感知他人的情绪和需要。你喜欢新鲜体验，愿意把快乐带给身边的人，在人群中常显得自然有感染力。你重视真实感受，不喜欢被过度约束。面对选择时，你可能更依赖当下直觉。建立简单的长期计划，留出安静复盘的时间，并坚持完成承诺，会让你的活力更稳定。"
+    };
+
+    const dimensionMeta = {
+      EI: {
+        name: "能量来源",
+        a: { letter: "E", label: "外向" },
+        b: { letter: "I", label: "内向" }
+      },
+      SN: {
+        name: "信息偏好",
+        a: { letter: "S", label: "实感" },
+        b: { letter: "N", label: "直觉" }
+      },
+      TF: {
+        name: "决策方式",
+        a: { letter: "T", label: "思考" },
+        b: { letter: "F", label: "情感" }
+      },
+      JP: {
+        name: "生活方式",
+        a: { letter: "J", label: "判断" },
+        b: { letter: "P", label: "感知" }
+      }
+    };
+
+    const answers = Array(questions.length).fill(null);
+    let currentIndex = 0;
+    let isAdvancing = false;
+
+    const quizView = document.getElementById("quizView");
+    const resultView = document.getElementById("resultView");
+    const dimensionTag = document.getElementById("dimensionTag");
+    const questionTitle = document.getElementById("questionTitle");
+    const optionsContainer = document.getElementById("options");
+    const prevButton = document.getElementById("prevButton");
+    const answerHint = document.getElementById("answerHint");
+    const progressTrack = document.getElementById("progressTrack");
+    const progressFill = document.getElementById("progressFill");
+    const progressCount = document.getElementById("progressCount");
+
+    function answeredCount() {
+      return answers.filter(Boolean).length;
+    }
+
+    function updateProgress() {
+      const count = answeredCount();
+      const percent = Math.round((count / questions.length) * 100);
+      progressFill.style.width = percent + "%";
+      progressCount.textContent = count + " / " + questions.length;
+      progressTrack.setAttribute("aria-valuenow", String(count));
+    }
+
+    function renderQuestion(index) {
+      const question = questions[index];
+      const selectedValue = answers[index];
+
+      dimensionTag.textContent = question.label;
+      questionTitle.textContent = question.text;
+      prevButton.disabled = index === 0;
+      answerHint.textContent = selectedValue
+        ? "可以改选，也可以继续检查其他题目"
+        : "请选择更符合你的选项";
+
+      optionsContainer.replaceChildren();
+
+      question.options.forEach((option, optionIndex) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "option";
+        button.textContent = option.text;
+        button.dataset.value = option.value;
+        button.setAttribute("aria-pressed", String(selectedValue === option.value));
+
+        if (selectedValue === option.value) {
+          button.classList.add("selected");
+        }
+
+        button.addEventListener("click", () => chooseAnswer(option.value, button));
+        button.addEventListener("keydown", (event) => {
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            const next = optionIndex === 0 ? 1 : 0;
+            optionsContainer.children[next].focus();
+          }
+        });
+
+        optionsContainer.appendChild(button);
+      });
+    }
+
+    function chooseAnswer(value, button) {
+      if (isAdvancing) return;
+
+      answers[currentIndex] = value;
+      [...optionsContainer.children].forEach((option) => {
+        const selected = option.dataset.value === value;
+        option.classList.toggle("selected", selected);
+        option.setAttribute("aria-pressed", String(selected));
+      });
+
+      updateProgress();
+      answerHint.textContent = "已记录";
+      isAdvancing = true;
+
+      window.setTimeout(() => {
+        isAdvancing = false;
+
+        if (!answers.every(Boolean)) {
+          const nextUnanswered = answers.findIndex((answer) => !answer);
+          currentIndex = nextUnanswered > -1 ? nextUnanswered : currentIndex;
+          renderQuestion(currentIndex);
+          return;
+        }
+
+        if (currentIndex === questions.length - 1) {
+          showResult();
+        } else {
+          currentIndex += 1;
+          renderQuestion(currentIndex);
+        }
+      }, 260);
+    }
+
+    function showView(view) {
+      quizView.classList.toggle("active", view === "quiz");
+      resultView.classList.toggle("active", view === "result");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function calculateResult() {
+      const scores = { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 };
+      answers.forEach((answer) => {
+        scores[answer] += 1;
+      });
+
+      const dimensions = Object.entries(dimensionMeta).map(([key, meta]) => {
+        const aScore = scores[meta.a.letter];
+        const bScore = scores[meta.b.letter];
+        const aPercent = Math.round((aScore / 5) * 100);
+        const bPercent = 100 - aPercent;
+        return { key, meta, aScore, bScore, aPercent, bPercent };
+      });
+
+      const type = dimensions
+        .map((item) => item.aScore > item.bScore ? item.meta.a.letter : item.meta.b.letter)
+        .join("");
+
+      return { type, dimensions };
+    }
+
+    function renderResult() {
+      const result = calculateResult();
+      const type = result.type;
+
+      document.getElementById("typeCode").textContent = type;
+      document.getElementById("typeName").textContent = typeNames[type];
+      document.getElementById("resultSummary").textContent =
+        "你的偏好组合是 " + type + "，通常被称为“" + typeNames[type] + "”。";
+      document.getElementById("description").textContent = descriptions[type];
+
+      const dimensionsContainer = document.getElementById("dimensions");
+      dimensionsContainer.replaceChildren();
+
+      result.dimensions.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "dimension";
+
+        const head = document.createElement("div");
+        head.className = "dimension-head";
+
+        const name = document.createElement("span");
+        name.className = "dimension-name";
+        name.textContent = item.meta.name;
+
+        const value = document.createElement("span");
+        value.className = "dimension-value";
+        value.textContent =
+          item.meta.a.letter + " " + item.aPercent + "% · " +
+          item.meta.b.letter + " " + item.bPercent + "%";
+
+        const bar = document.createElement("div");
+        bar.className = "split-bar";
+        bar.setAttribute("aria-label",
+          item.meta.name + "：" + item.meta.a.label + " " + item.aPercent +
+          "%，" + item.meta.b.label + " " + item.bPercent + "%");
+
+        const splitA = document.createElement("span");
+        splitA.className = "split-a";
+        splitA.style.width = item.aPercent + "%";
+
+        const splitB = document.createElement("span");
+        splitB.className = "split-b";
+        splitB.style.width = item.bPercent + "%";
+
+        const labels = document.createElement("div");
+        labels.className = "dimension-labels";
+
+        const labelA = document.createElement("span");
+        labelA.textContent = item.meta.a.letter + " " + item.meta.a.label;
+
+        const labelB = document.createElement("span");
+        labelB.textContent = item.meta.b.letter + " " + item.meta.b.label;
+
+        head.append(name, value);
+        bar.append(splitA, splitB);
+        labels.append(labelA, labelB);
+        row.append(head, bar, labels);
+        dimensionsContainer.appendChild(row);
+      });
+
+      showView("result");
+    }
+
+    function showResult() {
+      if (!answers.every(Boolean)) {
+        currentIndex = answers.findIndex((answer) => !answer);
+        renderQuestion(currentIndex);
+        showView("quiz");
+        return;
+      }
+      renderResult();
+    }
+
+    function restartTest() {
+      answers.fill(null);
+      currentIndex = 0;
+      isAdvancing = false;
+      updateProgress();
+      renderQuestion(0);
+      showView("quiz");
+    }
+
+    prevButton.addEventListener("click", () => {
+      if (currentIndex > 0) {
+        currentIndex -= 1;
+        renderQuestion(currentIndex);
+      }
+    });
+
+    document.getElementById("reviewButton").addEventListener("click", () => {
+      currentIndex = 0;
+      renderQuestion(currentIndex);
+      showView("quiz");
+    });
+
+    document.getElementById("restartButton").addEventListener("click", restartTest);
+
+    document.addEventListener("keydown", (event) => {
+      if (!quizView.classList.contains("active") || isAdvancing) return;
+      if (event.key === "1" || event.key === "2") {
+        const option = optionsContainer.children[Number(event.key) - 1];
+        if (option) option.click();
+      }
+      if (event.key === "ArrowLeft" && currentIndex > 0) {
+        currentIndex -= 1;
+        renderQuestion(currentIndex);
+      }
+    });
+
+    updateProgress();
+    renderQuestion(0);
+  </script>
+</body>
+</html>
